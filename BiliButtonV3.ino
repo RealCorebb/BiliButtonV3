@@ -1,6 +1,9 @@
-#define NUMstrip 14
+#define NUMstrip 35
 #define Digit1 0
 #define Digit2 7
+#define Digit3 14
+#define Digit4 21
+#define Digit5 28
 #define PIN 23
 #define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" // UART service UUID
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -254,7 +257,7 @@ void RainbowDrawDigit(int offset, int pixelHue, int n)
 }
 */
 
-int period = 1000;
+int period = 100;
 unsigned long time_now = 0;
 
 
@@ -283,14 +286,25 @@ void loop() {
   
   if(millis() > time_now + period){
         time_now = millis();
-        if  (DisplayNum>99) DisplayNum=0;
+        if  (DisplayNum>99999) DisplayNum=0;
              DisplayNum++;
     }
-  
-  int Display1 = (DisplayNum/10)%10;
-  int Display2 = (DisplayNum/1)%10;
+ 
+  int Display1 = (DisplayNum/10000)%10;
+  int Display2 = (DisplayNum/1000)%10;
+  int Display3 = (DisplayNum/100)%10;
+  int Display4 = (DisplayNum/10)%10;
+  int Display5 = (DisplayNum/1)%10;
+   /*
+    int Display1 = 2;
+  int Display2 = 0;
+  int Display3 = 5;
+  int Display4 = 3;
+  int Display5 = 6;*/
            DrawDigit(Digit1,r,g,b,Display1);
            DrawDigit(Digit2,r,g,b,Display2);
+           DrawDigit(Digit3,r,g,b,Display3);
+           DrawDigit(Digit4,r,g,b,Display4);
+           DrawDigit(Digit5,r,g,b,Display5);
    strip.Show();
 }
-
