@@ -21,7 +21,9 @@ NeoPixelBrightnessBus<NeoGrbFeature, Neo800KbpsMethod> strip(NUMstrip, PIN);
 int r=255;
 int g=255;
 int b=255;
+int pixel[NUMstrip]={0};
 int DisplayNum = 0;
+int MODE=1;                //0 color picker          //1 rainbow
 //-----------------------//
 
 //BLE------SETUP--------//
@@ -65,6 +67,8 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
 
 void setup() {
+  int looptime=0;
+  
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println();
@@ -76,7 +80,7 @@ void setup() {
   
   
   strip.Begin();
-  strip.SetBrightness(100);
+  strip.SetBrightness(50);
 //BLE//----------------------------------------
 // Create the BLE Device
   BLEDevice::init("BiliButtonV3");
@@ -111,158 +115,127 @@ void setup() {
   Serial.println("Waiting a client connection to notify...");
 //-------------------------------------------------------------------------------//
  //STARUP ANIMATION//
- /*
-  for(long firstPixelHue = 0; firstPixelHue < 5*65536; firstPixelHue += 256) {
-    for(int i=0; i<NUMstrip; i++) { // For each pixel in strip...
-      // Offset pixel hue by an amount to make one full revolution of the
-      // color wheel (range of 65536) along the length of the strip
-      // (strip.numPixels() steps):
-      int pixelHue = firstPixelHue + (i * 65536L / NUMstrip);
-      // RgbColorHSV() can take 1 or 3 arguments: a hue (0 to 65535) or
-      // optionally add saturation and value (brightness) (each 0 to 255).
-      // Here we're using just the single-argument hue variant. The result
-      // is passed through strip.gamma32() to provide 'truer' colors
-      // before assigning to each pixel:
-      strip.SetPixelColor(i, strip.gamma32(RgbColorHSV(pixelHue)));
+
+
+  for(long firstPixelHue = 0; firstPixelHue < 360; firstPixelHue ++) {
+    
+    if (looptime==0){
+        for(int i=0; i<NUMstrip; i++) { // For each pixel in strip...
+         // Offset pixel hue by an amount to make one full revolution of the
+          // color wheel (range of 65536) along the length of the strip
+          // (strip.numPixels() steps):    
+          int pixelHue = firstPixelHue + (i * 360L / NUMstrip);
+          // RgbColorHSV() can take 1 or 3 arguments: a hue (0 to 65535) or
+          // optionally add saturation and value (brightness) (each 0 to 255).
+         // Here we're using just the single-argument hue variant. The result
+         // is passed through strip.gamma32() to provide 'truer' colors
+         // before assigning to each pixel:
+         strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+         strip.Show(); // Update strip with new contents
+       delay(10);  // Pause for a moment
     }
-    strip.Show(); // Update strip with new contents
-    delay(10);  // Pause for a moment
+    }
+    else{
+        for(int i=0; i<NUMstrip; i++) { 
+            int pixelHue = firstPixelHue + (i * 360L / NUMstrip);
+            strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+          }
+        }
+       if (looptime!=0){
+        strip.Show();
+        delay(10);
+       }
+       looptime++;
+    }
   }
-  */
-}
+
 
 void DrawDigit(int offset, int r,int g,int b, int n)
 {
 
   if (n == 2 || n == 3 || n == 4 || n == 5 || n == 6 || n == 8 || n == 9) //MIDDLE
   {
-    strip.SetPixelColor(0 + offset, RgbColor(r, g, b));
+    pixel[0+offset]=1;
+   // strip.SetPixelColor(0 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(0 + offset, RgbColor(0, 0, 0));
+    pixel[0+offset]=0;
+   // strip.SetPixelColor(0 + offset, RgbColor(0, 0, 0));o
   }
   if (n == 0 || n == 1 || n == 2 || n == 3 || n == 4 || n == 7 || n == 8 || n == 9) //TOP RIGHT
   {
-    strip.SetPixelColor(6 + offset, RgbColor(r, g, b));
+    pixel[6+offset]=1;
+   // strip.SetPixelColor(6 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(6 + offset, RgbColor(0, 0, 0));
+    pixel[6+offset]=0;
+ //   strip.SetPixelColor(6 + offset, RgbColor(0, 0, 0));
   }
   if (n == 0 || n == 2 || n == 3 || n == 5 || n == 6 || n == 7 || n == 8 || n == 9) //TOP
   {
-    strip.SetPixelColor(5 + offset, RgbColor(r, g, b));
+    pixel[5+offset]=1;
+  //  strip.SetPixelColor(5 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(5 + offset, RgbColor(0, 0, 0));
+    pixel[5+offset]=0;
+ //   strip.SetPixelColor(5 + offset, RgbColor(0, 0, 0));
   }
   if (n == 0 || n == 4 || n == 5 || n == 6 || n == 8 || n == 9) //TOP LEFT
   {
-    strip.SetPixelColor(4 + offset, RgbColor(r, g, b));
+    pixel[4+offset]=1;
+  //  strip.SetPixelColor(4 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(4 + offset, RgbColor(0, 0, 0));
+    pixel[4+offset]=0;
+ //   strip.SetPixelColor(4 + offset, RgbColor(0, 0, 0));
   }
   if (n == 0 || n == 2 || n == 6 || n == 8) //BOTTOM LEFT
   {
-    strip.SetPixelColor(3 + offset, RgbColor(r, g, b));
+    pixel[3+offset]=1;
+ //   strip.SetPixelColor(3 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(3 + offset, RgbColor(0, 0, 0));
+    pixel[3+offset]=0;
+   // strip.SetPixelColor(3 + offset, RgbColor(0, 0, 0));
   }
   if (n == 0 || n == 2 || n == 3 || n == 5 || n == 6 || n == 8 || n == 9) //BOTTOM
   {
-    strip.SetPixelColor(2 + offset, RgbColor(r, g, b));
+    pixel[2+offset]=1;
+    //strip.SetPixelColor(2 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(2 + offset, RgbColor(0, 0, 0));
+    pixel[2+offset]=0;
+   // strip.SetPixelColor(2 + offset, RgbColor(0, 0, 0));
   }
   if (n == 0 || n == 1 || n == 3 || n == 4 || n == 5 || n == 6 || n == 7 || n == 8 || n == 9) //BOTTOM RIGHT
   {
-    strip.SetPixelColor(1 + offset, RgbColor(r, g, b));
+    pixel[1+offset]=1;
+   // strip.SetPixelColor(1 + offset, RgbColor(r, g, b));
   }
   else
   {
-    strip.SetPixelColor(1 + offset, RgbColor(0, 0, 0));
+    pixel[1+offset]=0;
+    //strip.SetPixelColor(1 + offset, RgbColor(0, 0, 0));
   }
  
 }
-/*
 
-void RainbowDrawDigit(int offset, int pixelHue, int n)
-{
-
-  if (n == 2 || n == 3 || n == 4 || n == 5 || n == 6 || n == 8 || n == 9) //MIDDLE
-  {
-    strip.SetPixelColor(0 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(0 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 1 || n == 2 || n == 3 || n == 4 || n == 7 || n == 8 || n == 9) //TOP RIGHT
-  {
-    strip.SetPixelColor(6 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(6 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 2 || n == 3 || n == 5 || n == 6 || n == 7 || n == 8 || n == 9) //TOP
-  {
-    strip.SetPixelColor(5 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(5 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 4 || n == 5 || n == 6 || n == 8 || n == 9) //TOP LEFT
-  {
-    strip.SetPixelColor(4 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(4 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 2 || n == 6 || n == 8) //BOTTOM LEFT
-  {
-    strip.SetPixelColor(3 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(3 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 2 || n == 3 || n == 5 || n == 6 || n == 8 || n == 9) //BOTTOM
-  {
-    strip.SetPixelColor(2 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(2 + offset, RgbColor(0, 0, 0));
-  }
-  if (n == 0 || n == 1 || n == 3 || n == 4 || n == 5 || n == 6 || n == 7 || n == 8 || n == 9) //BOTTOM RIGHT
-  {
-    strip.SetPixelColor(1 + offset, strip.gamma32(RgbColorHSV(pixelHue)));
-  }
-  else
-  {
-    strip.SetPixelColor(1 + offset, RgbColor(0, 0, 0));
-  }
-  strip.Show();
-}
-*/
-
+//TIMING SETTINGS//
 int period = 100;
 unsigned long time_now = 0;
+int Rainbowperiod = 20;
+unsigned long Rainbowtime_now = 0;
+//////////
 
 
+long firstPixelHue = 0;
 void loop() {
-
     if (deviceConnected) {
         pTxCharacteristic->setValue(&txValue, 1);
         pTxCharacteristic->notify();
@@ -288,23 +261,50 @@ void loop() {
         time_now = millis();
         if  (DisplayNum>99999) DisplayNum=0;
              DisplayNum++;
-    }
- 
-  int Display1 = (DisplayNum/10000)%10;
-  int Display2 = (DisplayNum/1000)%10;
-  int Display3 = (DisplayNum/100)%10;
-  int Display4 = (DisplayNum/10)%10;
-  int Display5 = (DisplayNum/1)%10;
-   /*
-    int Display1 = 2;
-  int Display2 = 0;
-  int Display3 = 5;
-  int Display4 = 3;
-  int Display5 = 6;*/
+               int Display1 = (DisplayNum/10000)%10;
+                int Display2 = (DisplayNum/1000)%10;
+                 int Display3 = (DisplayNum/100)%10;
+                  int Display4 = (DisplayNum/10)%10;
+                    int Display5 = (DisplayNum/1)%10;
            DrawDigit(Digit1,r,g,b,Display1);
            DrawDigit(Digit2,r,g,b,Display2);
            DrawDigit(Digit3,r,g,b,Display3);
            DrawDigit(Digit4,r,g,b,Display4);
            DrawDigit(Digit5,r,g,b,Display5);
+  }
+           switch(MODE){
+            case 0:
+                 for (int i=0;i<NUMstrip;i++){
+                  if (pixel[i]==1){
+                   strip.SetPixelColor(i, RgbColor(r, g, b));
+                   }
+                  else {
+                    strip.SetPixelColor(i,RgbColor(0, 0, 0));
+                 }
+                 }
+                 break;
+            case 1:
+                      if(millis() > Rainbowtime_now + Rainbowperiod){
+                        int count=0;
+                        Rainbowtime_now = millis();
+                      if(firstPixelHue < 360){
+                          firstPixelHue ++;                       
+                           for(int i=0; i<NUMstrip; i++) { 
+                               int pixelHue = firstPixelHue + (count * 360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                        count++;
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                              }
+                            }     
+                            else firstPixelHue=0;
+                           }          
+                 break;
+           }
+ 
+
    strip.Show();
 }
