@@ -1,3 +1,11 @@
+
+#include <WiFi.h>          
+
+//needed for library
+#include <DNSServer.h>
+#include <WebServer.h>
+#include <WiFiManager.h>    
+#include <HTTPClient.h>
 #define NUMstrip 35
 #define Digit1 0
 #define Digit2 7
@@ -23,7 +31,8 @@ int g=255;
 int b=255;
 int pixel[NUMstrip]={0};
 int DisplayNum = 0;
-int MODE=1;                //0 color picker          //1 rainbow
+int MODE=1;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
+int brightness=1;
 //-----------------------//
 
 //BLE------SETUP--------//
@@ -80,7 +89,7 @@ void setup() {
   
   
   strip.Begin();
-  strip.SetBrightness(50);
+  strip.SetBrightness(brightness);
 //BLE//----------------------------------------
 // Create the BLE Device
   BLEDevice::init("BiliButtonV3");
@@ -113,6 +122,15 @@ void setup() {
   // Start advertising
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
+  //------------------------------WIFI---------------------------//
+ WiFiManager wifiManager;
+ wifiManager.autoConnect("BiliButton");
+   
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip);
 //-------------------------------------------------------------------------------//
  //STARUP ANIMATION//
 
@@ -132,6 +150,10 @@ void setup() {
          // before assigning to each pixel:
          strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
          strip.Show(); // Update strip with new contents
+         if(brightness<80){
+            brightness+=1;
+            strip.SetBrightness(brightness);
+         }
        delay(10);  // Pause for a moment
     }
     }
@@ -142,6 +164,10 @@ void setup() {
           }
         }
        if (looptime!=0){
+        if(brightness<80){
+            brightness+=1;
+            strip.SetBrightness(brightness);
+         }
         strip.Show();
         delay(10);
        }
@@ -227,7 +253,7 @@ void DrawDigit(int offset, int r,int g,int b, int n)
 }
 
 //TIMING SETTINGS//
-int period = 100;
+int period = 600;
 unsigned long time_now = 0;
 int Rainbowperiod = 20;
 unsigned long Rainbowtime_now = 0;
@@ -259,8 +285,28 @@ void loop() {
   
   if(millis() > time_now + period){
         time_now = millis();
+
+        HTTPClient http;  //Declare an object of class HTTPClient
+ 
+    http.begin("http://api.bilibili.com/x/relation/stat?vmid=625268");  //Specify request destination
+    int httpCode = http.GET();                                                                  //Send the request
+ 
+    if (httpCode == 200) { //Check the returning code
+ 
+      String payload = http.getString();   //Get the request response payload
+      String subs=payload.substring(payload.indexOf("\"follower\":")+11,payload.indexOf("}}"));
+      int subscriberCount=subs.toInt();
+      Serial.println(subscriberCount);
+     
+    
+      http.end();  
+      DisplayNum=subscriberCount;
+  }  
+        /*
         if  (DisplayNum>99999) DisplayNum=0;
              DisplayNum++;
+             */
+             
                int Display1 = (DisplayNum/10000)%10;
                 int Display2 = (DisplayNum/1000)%10;
                  int Display3 = (DisplayNum/100)%10;
@@ -303,6 +349,23 @@ void loop() {
                             else firstPixelHue=0;
                            }          
                  break;
+             case 2:
+                    if(millis() > Rainbowtime_now + Rainbowperiod){
+                        Rainbowtime_now = millis();
+                        if(firstPixelHue < 360){
+                          firstPixelHue ++;  
+                    for(int i=0; i<NUMstrip; i++) { 
+                               int pixelHue = firstPixelHue + (360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                              }           
+                           }    
+                           else firstPixelHue=0;
+                    }                      
            }
  
 
