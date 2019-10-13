@@ -31,8 +31,10 @@ int g=255;
 int b=255;
 int pixel[NUMstrip]={0};
 int DisplayNum = 0;
-int MODE=1;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
+int MODE=0;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
 int brightness=1;
+int Anilooptime=0;
+int oldSubscriberCount=0;
 //-----------------------//
 
 //BLE------SETUP--------//
@@ -77,7 +79,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
 void setup() {
   int looptime=0;
-  
+  WiFiManager wifiManager;
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println();
@@ -122,15 +124,7 @@ void setup() {
   // Start advertising
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
-  //------------------------------WIFI---------------------------//
- WiFiManager wifiManager;
- wifiManager.autoConnect("BiliButton");
-   
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip);
+
 //-------------------------------------------------------------------------------//
  //STARUP ANIMATION//
 
@@ -150,7 +144,7 @@ void setup() {
          // before assigning to each pixel:
          strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
          strip.Show(); // Update strip with new contents
-         if(brightness<80){
+         if(brightness<60){
             brightness+=1;
             strip.SetBrightness(brightness);
          }
@@ -158,6 +152,10 @@ void setup() {
     }
     }
     else{
+            //------------------------------WIFI---------------------------//
+        if(looptime==1)
+           wifiManager.autoConnect("BiliButton");
+
         for(int i=0; i<NUMstrip; i++) { 
             int pixelHue = firstPixelHue + (i * 360L / NUMstrip);
             strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
@@ -173,6 +171,7 @@ void setup() {
        }
        looptime++;
     }
+    
   }
 
 
@@ -257,10 +256,13 @@ int period = 600;
 unsigned long time_now = 0;
 int Rainbowperiod = 20;
 unsigned long Rainbowtime_now = 0;
+int Rainbowperiod_Fast = 5;
+unsigned long Rainbowtime_now_Fast = 0;
 //////////
 
 
 long firstPixelHue = 0;
+int changing=0;
 void loop() {
     if (deviceConnected) {
         pTxCharacteristic->setValue(&txValue, 1);
@@ -296,6 +298,11 @@ void loop() {
       String payload = http.getString();   //Get the request response payload
       String subs=payload.substring(payload.indexOf("\"follower\":")+11,payload.indexOf("}}"));
       int subscriberCount=subs.toInt();
+      if (subscriberCount!=oldSubscriberCount){
+        changing=1;
+        Serial.println(changing);
+        }
+      oldSubscriberCount=subscriberCount;
       Serial.println(subscriberCount);
      
     
@@ -318,7 +325,88 @@ void loop() {
            DrawDigit(Digit4,r,g,b,Display4);
            DrawDigit(Digit5,r,g,b,Display5);
   }
+          if(changing==1){          
            switch(MODE){
+            case 0:
+                        for (int i=0;i<2;i++){
+                        int count=0;
+                        int firstPixelHue=random(0,360);
+                        if (Anilooptime==0){                
+                           for(int i=NUMstrip; i>0; i--) { 
+                            
+                               int pixelHue = firstPixelHue + (count * 360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                        count++;
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                                  strip.Show();
+                                  firstPixelHue++;
+                                  if(firstPixelHue>360) firstPixelHue==0;                             
+                                  delay(10);
+                              }
+                        }
+                        else{
+                          for(int i=NUMstrip; i>0; i--) { 
+                            if (pixel[i]==1)
+                                 strip.SetPixelColor(i, RgbColor(r,g,b));      
+                            else
+                                strip.SetPixelColor(i, RgbColor(0,0,0));   
+
+                          strip.Show();
+                          delay(10);
+                          }
+                          Anilooptime=0;
+                          changing=0;
+                          Serial.println(changing);
+                          break;              
+                        }
+                              Anilooptime++;
+                        }
+                 break;
+            case 1:
+                      if(millis() > Rainbowtime_now + Rainbowperiod){
+                        int count=0;
+                        Rainbowtime_now = millis();
+                      if(firstPixelHue < 360){
+                          firstPixelHue ++;                       
+                           for(int i=0; i<NUMstrip; i++) { 
+                               int pixelHue = firstPixelHue + (count * 360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                        count++;
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                              }
+                            }     
+                            else firstPixelHue=0;
+                           }          
+                 break;
+             case 2:
+                    if(millis() > Rainbowtime_now + Rainbowperiod){
+                        Rainbowtime_now = millis();
+                        if(firstPixelHue < 360){
+                          firstPixelHue ++;  
+                    for(int i=0; i<NUMstrip; i++) { 
+                               int pixelHue = firstPixelHue + (360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                              }           
+                           }    
+                           else firstPixelHue=0;
+                    }                      
+           }
+          }
+          if (changing==0){
+              switch(MODE){
             case 0:
                  for (int i=0;i<NUMstrip;i++){
                   if (pixel[i]==1){
@@ -365,9 +453,9 @@ void loop() {
                               }           
                            }    
                            else firstPixelHue=0;
-                    }                      
-           }
- 
+                    }    
+            }
 
    strip.Show();
+}
 }
