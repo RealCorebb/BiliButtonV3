@@ -30,8 +30,8 @@ int g=255;
 int b=255;
 int pixel[NUMstrip]={0};
 int DisplayNum = 0;
-int MODE_DIGIT=1;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
-int MODE_LIGHTING=2;            //0 color picker                     //2 RainbowSmooth
+uint32_t MODE_DIGIT=1;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
+uint32_t MODE_LIGHTING=2;            //0 color picker                     //2 RainbowSmooth
 int brightness=1;
 //LED--------SETUP-----------//
 int LEDR=25;
@@ -72,6 +72,11 @@ class MyCallbacks: public BLECharacteristicCallbacks {
          
           Serial.printf("R: %d | G: %d | B: %d \n\r",r,g,b);
         }
+        if(command == "!M"){
+          MODE_DIGIT=(uint8_t)rxValue[2];
+          Serial.println("MODE_DIGIT:::");
+          Serial.printf("%d",MODE_DIGIT);
+          }
       }
       Serial.println("out");
     }
@@ -270,25 +275,34 @@ int period = 600;
 unsigned long time_now = 0;
 int Rainbowperiod = 20;
 unsigned long Rainbowtime_now = 0;
+int BLEdelay = 10;
+unsigned long BLEdelay_now = 0;
+int BLEDisconnected = 500;
+unsigned long BLEDisconnected_now = 0;
 //////////
 
 
 long firstPixelHue = 0;
 void loop() {
     if (deviceConnected) {
+      if(millis() > BLEdelay_now + BLEdelay){
+                        BLEdelay_now = millis();
         pTxCharacteristic->setValue(&txValue, 1);
         pTxCharacteristic->notify();
         txValue++;
-      delay(5); // bluetooth stack will go into congestion, if too many packets are sent
+      }
   }
 
 
     // disconnecting
     if (!deviceConnected && oldDeviceConnected) {
+            if(millis() > BLEDisconnected_now + BLEDisconnected){
+                        BLEDisconnected_now = millis();
         //delay(500); // give the bluetooth stack the chance to get things ready
         pServer->startAdvertising(); // restart advertising
         Serial.println("start advertising");
         oldDeviceConnected = deviceConnected;
+            }
     }
     // connecting
     if (deviceConnected && !oldDeviceConnected) {
@@ -309,7 +323,7 @@ void loop() {
       String payload = http.getString();   //Get the request response payload
       String subs=payload.substring(payload.indexOf("\"follower\":")+11,payload.indexOf("}}"));
       int subscriberCount=subs.toInt();
-      Serial.println(subscriberCount);
+      //Serial.println(subscriberCount);
      
     
       http.end();  
