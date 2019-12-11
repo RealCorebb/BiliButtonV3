@@ -37,9 +37,13 @@ int brightness=1;
 int LEDR=25;
 int LEDG=26;
 int LEDB=27;
-uint32_t R, G, B;           // the Red Green and Blue color components
+uint32_t R=255;  
+uint32_t G=255; 
+uint32_t B=255;     
 uint8_t LEDcolorhue = 0;
-const boolean invert = true; // set true if common anode, false if common cathode
+boolean LED_PICK_CHANGE=false;
+const boolean invert = false; // set true if common anode, false if common cathode
+int LED_brightness = 127;
 //BLE------SETUP--------//
 BLEServer *pServer = NULL;
 BLECharacteristic * pTxCharacteristic;
@@ -72,10 +76,20 @@ class MyCallbacks: public BLECharacteristicCallbacks {
          
           Serial.printf("R: %d | G: %d | B: %d \n\r",r,g,b);
         }
+        if(command == "!O"){
+          R = (uint8_t)rxValue[2];
+          
+          G = (uint8_t)rxValue[3];
+          B = (uint8_t)rxValue[4];
+           LED_PICK_CHANGE=true;
+          Serial.printf("LED_OwO R: %d | G: %d | B: %d \n\r",R,G,B);
+        }
         if(command == "!M"){
           MODE_DIGIT=(uint8_t)rxValue[2];
-          Serial.println("MODE_DIGIT:::");
-          Serial.printf("%d",MODE_DIGIT);
+
+          }
+        if(command == "!L"){
+          MODE_LIGHTING=(uint8_t)rxValue[2];
           }
       }
       Serial.println("out");
@@ -279,6 +293,8 @@ int BLEdelay = 10;
 unsigned long BLEdelay_now = 0;
 int BLEDisconnected = 500;
 unsigned long BLEDisconnected_now = 0;
+int Rainbowperiod_LED = 20;
+unsigned long Rainbowtime_LED_now = 0;
 //////////
 
 
@@ -377,8 +393,8 @@ void loop() {
                            }          
                  break;
              case 2:
-                    if(millis() > Rainbowtime_now + Rainbowperiod){
-                        Rainbowtime_now = millis();
+                    if(millis() > Rainbowtime_LED_now + Rainbowperiod_LED){
+                        Rainbowtime_LED_now = millis();
                         if(firstPixelHue < 360){
                           firstPixelHue ++;  
                     for(int i=0; i<NUMstrip; i++) { 
@@ -397,16 +413,27 @@ void loop() {
            }
    strip.Show();
            switch(MODE_LIGHTING){
-              case 2:
-                     if(millis() > Rainbowtime_now + Rainbowperiod){
-                      if (LEDcolorhue<=255){
-                        LEDcolorhue++;
-                     hueToRGB(LEDcolorhue, 255);
+              case 0:
+                     if(LED_PICK_CHANGE){
                      ledcWrite(1, R); // write red component to channel 1, etc.
                       ledcWrite(2, G);   
                         ledcWrite(3, B); 
+                        Serial.printf("Just changed LED Color");
+                        LED_PICK_CHANGE=false;
+                        
+                     }
+                        break;
+              case 2:
+                     if(millis() > Rainbowtime_LED_now + Rainbowperiod_LED){
+                      Rainbowtime_LED_now = millis();
+                      hueToRGB(LEDcolorhue, LED_brightness);
+                      ledcWrite(1, R); // write red component to channel 1, etc.
+                      ledcWrite(2, G);   
+                        ledcWrite(3, B); 
+                        LEDcolorhue++;
+                      if (LEDcolorhue>255){
+                        LEDcolorhue=0;
                       }
-                      else LEDcolorhue=0;
                      }
                      break;
                     } 
