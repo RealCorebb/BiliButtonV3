@@ -1,10 +1,7 @@
-
-#include <WiFi.h>          
-//needed for library
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 #include <DNSServer.h>
-#include <WebServer.h>
-#include <WiFiManager.h>    
 #include <HTTPClient.h>
+WiFiManager wm;
 #define NUMstrip 35
 #define Digit1 0
 #define Digit2 7
@@ -33,6 +30,8 @@ int DisplayNum = 0;
 uint32_t MODE_DIGIT=1;                //0 color picker          //1 rainbowloop             //2 RainbowSmooth
 uint32_t MODE_LIGHTING=2;            //0 color picker                     //2 RainbowSmooth
 int brightness=1;
+int oldSubscriberCount=0;
+int Anilooptime=0;
 //LED--------SETUP-----------//
 int LEDR=25;
 int LEDG=26;
@@ -101,15 +100,12 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
 void setup() {
   int looptime=0;
-  
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println();
   Serial.println("Gogogo!");
   
 
-
-  Serial.println(" CONNECTED");
   
   
   strip.Begin();
@@ -172,14 +168,15 @@ void setup() {
        delay(10);  // Pause for a moment
     }
       //------------------------------WIFI---------------------------//
- WiFiManager wifiManager;
- wifiManager.autoConnect("BiliButton");
-   
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip);
+ WiFi.mode(WIFI_STA);   
+
+    Serial.begin(115200);
+    if(wm.autoConnect("BiliButtonV3")){
+        Serial.println("connected...yeey :)");
+    }
+    else {
+        Serial.println("Configportal running");
+    }
 //-------------------------------------------------------------------------------//
     }
     else{
@@ -295,11 +292,15 @@ int BLEDisconnected = 500;
 unsigned long BLEDisconnected_now = 0;
 int Rainbowperiod_LED = 20;
 unsigned long Rainbowtime_LED_now = 0;
+int animation = 10;
+unsigned long animation_now = 0;
 //////////
 
 
 long firstPixelHue = 0;
+int changing=0;
 void loop() {
+  wm.process();
     if (deviceConnected) {
       if(millis() > BLEdelay_now + BLEdelay){
                         BLEdelay_now = millis();
@@ -331,7 +332,7 @@ void loop() {
 
         HTTPClient http;  //Declare an object of class HTTPClient
  
-    http.begin("http://api.bilibili.com/x/relation/stat?vmid=625268");  //Specify request destination
+    http.begin("http://api.bilibili.com/x/relation/stat?vmid=13646693");  //Specify request destination
     int httpCode = http.GET();                                                                  //Send the request
  
     if (httpCode == 200) { //Check the returning code
@@ -340,8 +341,11 @@ void loop() {
       String subs=payload.substring(payload.indexOf("\"follower\":")+11,payload.indexOf("}}"));
       int subscriberCount=subs.toInt();
       //Serial.println(subscriberCount);
-     
-    
+        if (subscriberCount!=oldSubscriberCount){
+        changing=1;
+        Serial.println(changing);
+        }
+      oldSubscriberCount=subscriberCount;
       http.end();  
       DisplayNum=subscriberCount;
   }  
@@ -349,7 +353,31 @@ void loop() {
         if  (DisplayNum>99999) DisplayNum=0;
              DisplayNum++;
              */
-             
+             if(DisplayNum<100){
+                   int Display1 = (DisplayNum/10)%10;
+                    int Display2 = (DisplayNum/1)%10;
+                    DrawDigit(Digit3,r,g,b,Display1);
+                     DrawDigit(Digit4,r,g,b,Display2);
+              }
+              else if(DisplayNum<1000){
+                int Display1 = (DisplayNum/100)%10;
+                  int Display2 = (DisplayNum/10)%10;
+                    int Display3 = (DisplayNum/1)%10;
+                               DrawDigit(Digit2,r,g,b,Display1);
+                                DrawDigit(Digit3,r,g,b,Display2);
+                                 DrawDigit(Digit4,r,g,b,Display3);
+                }
+                else if (DisplayNum<10000){
+                 int Display1 = (DisplayNum/1000)%10;
+                 int Display2 = (DisplayNum/100)%10;
+                  int Display3 = (DisplayNum/10)%10;
+                    int Display4 = (DisplayNum/1)%10;
+                      DrawDigit(Digit2,r,g,b,Display1);
+                              DrawDigit(Digit3,r,g,b,Display2);
+                                 DrawDigit(Digit4,r,g,b,Display3);
+                                    DrawDigit(Digit5,r,g,b,Display4);
+                  }
+             else if(DisplayNum<100000){
                int Display1 = (DisplayNum/10000)%10;
                 int Display2 = (DisplayNum/1000)%10;
                  int Display3 = (DisplayNum/100)%10;
@@ -360,9 +388,11 @@ void loop() {
            DrawDigit(Digit3,r,g,b,Display3);
            DrawDigit(Digit4,r,g,b,Display4);
            DrawDigit(Digit5,r,g,b,Display5);
+             }
   }
            switch(MODE_DIGIT){
             case 0:
+                if(changing==0){
                  for (int i=0;i<NUMstrip;i++){
                   if (pixel[i]==1){
                    strip.SetPixelColor(i, RgbColor(r, g, b));
@@ -371,7 +401,50 @@ void loop() {
                     strip.SetPixelColor(i,RgbColor(0, 0, 0));
                  }
                  }
-                 break;
+                }
+                if(changing==1){
+                        for (int i=0;i<2;i++){
+                        int count=0;
+                        int firstPixelHue=random(0,360);
+                        int anii=NUMstrip;
+                        if (Anilooptime==0){                
+                           if(millis() > animation_now + animation){
+                                animation_now=millis();
+                               if(anii>0) anii--;
+                               int pixelHue = firstPixelHue + (count * 360L / NUMstrip);
+                                  if (pixel[i]==1){
+                                        count++;
+                                       strip.SetPixelColor(i, HslColor(pixelHue/360.0f,1.0f,0.5f));
+                                  }
+                                  else{
+                                      strip.SetPixelColor(i, RgbColor(0,0,0));
+                                  }
+                                  strip.Show();
+                                  firstPixelHue++;
+                                  if(firstPixelHue>360) firstPixelHue==0;                             
+                                 // delay(10);
+                              }
+                        }
+                        else{
+                          for(int i=NUMstrip; i>0; i--) { 
+                            if (pixel[i]==1)
+                                 strip.SetPixelColor(i, RgbColor(r,g,b));      
+                            else
+                                strip.SetPixelColor(i, RgbColor(0,0,0));   
+
+                          strip.Show();
+                          delay(10);
+                          }
+                          Anilooptime=0;
+                          changing=0;
+                          Serial.println(changing);
+                          break;              
+                        }
+                              Anilooptime++;
+                        }
+                }
+                                 break;
+                 
             case 1:
                       if(millis() > Rainbowtime_now + Rainbowperiod){
                         int count=0;
